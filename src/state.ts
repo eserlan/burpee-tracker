@@ -1,0 +1,127 @@
+import type { Entry, ExportBlobV1 } from './types';
+import { addEntry, deleteEntry, exportAll, getDailyGoal, importReplace, listEntries, setDailyGoal } from './db';
+import { buildHistory, currentStreak, longestStreak, totalsByDay } from './stats';
+import { todayKey, trainingDayKey } from './time';
+
+const DEFAULT_GOAL = 50;
+
+export type DerivedState = {
+  todayKey: string;
+  todayTotal: number;
+  canUndoToday: boolean;
+  currentStreak: number;
+  longestStreak: number;
+  history: ReturnType<typeof buildHistory>;
+};
+
+export type AppState = {
+  entries: Entry[];
+  dailyGoal: number;
+  derived: DerivedState;
+};
+
+const listeners = new Set<() => void>();
+
+const deriveState = (entries: Entry[], dailyGoal: number): DerivedState => {
+  const totals = totalsByDay(entries);
+  const today = todayKey();
+  const todayTotal = totals.get(today) ?? 0;
+  const canUndoToday = entries.some((entry) => trainingDayKey(new Date(entry.timestamp)) === today);
+  return {
+    todayKey: today,
+    todayTotal,
+    canUndoToday,
+    currentStreak: currentStreak(totals, today, dailyGoal),
+    longestStreak: longestStreak(totals, dailyGoal),
+    history: buildHistory(entries)
+  };
+};
+
+export const state: AppState = {
+  entries: [],
+  dailyGoal: DEFAULT_GOAL,
+  derived: {
+    todayKey: todayKey(),
+    todayTotal: 0,
+    canUndoToday: false,
+    currentStreak: 0,
+    longestStreak: 0,
+    history: []
+  }
+};
+
+const emitChange = () => {
+  state.derived = deriveState(state.entries, state.dailyGoal);
+  listeners.forEach((listener) => listener());
+};
+
+export const subscribe = (listener: () => void): (() => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+export const initState = async (): Promise<void> => {
+  const [goal, entries] = await Promise.all([getDailyGoal(), listEntries()]);
+  state.dailyGoal = goal ?? DEFAULT_GOAL;
+  state.entries = entries;
+  emitChange();
+};
+
+export const addTen = async (): Promise<void> => {
+  const entry: Entry = {
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    count: 10
+  };
+  await addEntry(entry);
+  state.entries = [...state.entries, entry];
+  emitChange();
+};
+
+export const undoLast = async (): Promise<void> => {
+  if (state.entries.length === 0) {
+    return;
+  }
+  const lastEntry = state.entries[state.entries.length - 1];
+  await deleteEntry(lastEntry.id);
+  state.entries = state.entries.slice(0, -1);
+  emitChange();
+};
+
+const isValidGoal = (goal: number): boolean => goal >= 10 && goal <= 1000 && goal % 10 === 0;
+
+export const setGoal = async (goal: number): Promise<void> => {
+  if (!Number.isFinite(goal) || !isValidGoal(goal)) {
+    return;
+  }
+  state.dailyGoal = goal;
+  await setDailyGoal(goal);
+  emitChange();
+};
+
+export const exportJson = async (): Promise<string> => {
+  const blob = await exportAll();
+  return JSON.stringify(blob, null, 2);
+};
+
+const isEntry = (entry: Entry): boolean => {
+  return (
+    typeof entry.id === 'string' &&
+    typeof entry.timestamp === 'string' &&
+    entry.count === 10
+  );
+};
+
+export const importJson = async (blob: ExportBlobV1): Promise<void> => {
+  if (blob.schemaVersion !== 1) {
+    throw new Error('Unsupported schema version');
+  }
+  if (!blob.settings || !isValidGoal(blob.settings.dailyGoal)) {
+    throw new Error('Invalid settings');
+  }
+  if (!Array.isArray(blob.entries) || !blob.entries.every(isEntry)) {
+    throw new Error('Invalid entries');
+  }
+  await importReplace(blob);
+  await initState();
+};
