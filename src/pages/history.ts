@@ -4,15 +4,16 @@ import { formatTime } from '../stats';
 
 const expandedDays = new Set<string>();
 
-const toggleDay = (dateKey: string) => {
+const toggleDay = (dateKey: string, rerender: () => void) => {
   if (expandedDays.has(dateKey)) {
     expandedDays.delete(dateKey);
   } else {
     expandedDays.add(dateKey);
   }
+  rerender();
 };
 
-export const renderHistory = (state: AppState) => {
+export const renderHistory = (state: AppState, rerender?: () => void) => {
   if (state.derived.history.length === 0) {
     return html`<p class="text-sm text-slate-400">No history yet. Start with a +10.</p>`;
   }
@@ -27,7 +28,9 @@ export const renderHistory = (state: AppState) => {
           <article class="rounded-2xl border border-slate-800 bg-slate-900">
             <button
               class="flex w-full items-center justify-between px-4 py-3 text-left"
-              @click=${() => toggleDay(day.dateKey)}
+              aria-expanded=${isOpen ? 'true' : 'false'}
+              aria-label=${`${day.dateKey}, ${day.total} burpees, ${day.total >= state.dailyGoal ? 'goal met' : 'below goal'}. Click to ${isOpen ? 'collapse' : 'expand'} details.`}
+              @click=${() => rerender && toggleDay(day.dateKey, rerender)}
             >
               <div>
                 <p class="text-sm font-semibold text-white">${day.dateKey}</p>

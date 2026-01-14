@@ -18,7 +18,12 @@ const handleImport = async (file: File | null) => {
     return;
   }
   const text = await file.text();
-  const data = JSON.parse(text) as ExportBlobV1;
+  let data: ExportBlobV1;
+  try {
+    data = JSON.parse(text) as ExportBlobV1;
+  } catch (error) {
+    throw new Error('Failed to parse JSON. Please ensure the file is valid JSON.');
+  }
   const confirmed = window.confirm('Importing will replace all local data. Continue?');
   if (!confirmed) {
     return;
@@ -67,7 +72,11 @@ export const renderSettings = (state: AppState) => {
               const target = event.target as HTMLInputElement;
               handleImport(target.files?.[0] ?? null).catch((error) => {
                 console.error(error);
-                window.alert('Invalid import file.');
+                const message =
+                  error instanceof Error && error.message
+                    ? error.message
+                    : 'Invalid import file.';
+                window.alert(message);
               });
               target.value = '';
             }}

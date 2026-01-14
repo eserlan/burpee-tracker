@@ -68,6 +68,8 @@ export const initState = async (): Promise<void> => {
 };
 
 export const addTen = async (): Promise<void> => {
+  // crypto.randomUUID() requires a secure context (HTTPS or localhost).
+  // This works on GitHub Pages (HTTPS) and during local development.
   const entry: Entry = {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
@@ -92,6 +94,7 @@ const isValidGoal = (goal: number): boolean => goal >= 10 && goal <= 1000 && goa
 
 export const setGoal = async (goal: number): Promise<void> => {
   if (!Number.isFinite(goal) || !isValidGoal(goal)) {
+    window.alert('Goal must be between 10 and 1000, and divisible by 10.');
     return;
   }
   state.dailyGoal = goal;
@@ -105,11 +108,17 @@ export const exportJson = async (): Promise<string> => {
 };
 
 const isEntry = (entry: Entry): boolean => {
-  return (
-    typeof entry.id === 'string' &&
-    typeof entry.timestamp === 'string' &&
-    entry.count === 10
-  );
+  if (typeof entry.id !== 'string' || entry.id.trim().length === 0) {
+    return false;
+  }
+  if (typeof entry.timestamp !== 'string') {
+    return false;
+  }
+  const parsedTimestamp = Date.parse(entry.timestamp);
+  if (Number.isNaN(parsedTimestamp)) {
+    return false;
+  }
+  return entry.count === 10;
 };
 
 export const importJson = async (blob: ExportBlobV1): Promise<void> => {

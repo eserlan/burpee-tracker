@@ -39,15 +39,6 @@ export const deleteEntry = async (id: string): Promise<void> => {
   await db.delete('entries', id);
 };
 
-export const getLastEntry = async (): Promise<Entry | null> => {
-  const db = await dbPromise;
-  const tx = db.transaction('entries');
-  const index = tx.store.index('by-timestamp');
-  const cursor = await index.openCursor(undefined, 'prev');
-  await tx.done;
-  return cursor?.value ?? null;
-};
-
 export const getDailyGoal = async (): Promise<number | null> => {
   const db = await dbPromise;
   const record = await db.get('settings', 'dailyGoal');
