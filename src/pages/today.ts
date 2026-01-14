@@ -2,6 +2,66 @@ import { html } from 'lit-html';
 import type { AppState } from '../state';
 import { addTen, undoLast } from '../state';
 
+const CELEBRATION_MESSAGES = ['Nice work!', 'Keep it up!', 'Burpees logged!', 'Crushing it!', 'Strong set!'];
+const CELEBRATION_ANIMATIONS = ['celebration-pop', 'celebration-spin', 'celebration-bounce'];
+const CONFETTI_COLORS = ['#38bdf8', '#fbbf24', '#f472b6', '#4ade80', '#a78bfa'];
+const CONFETTI_PIECE_COUNT = 28;
+const CELEBRATION_DURATION_MS = 2200;
+const CELEBRATION_DELAY_MS = 450;
+let celebrationIndex = 0;
+
+const ensureCelebrationLayer = (): HTMLDivElement => {
+  let layer = document.querySelector<HTMLDivElement>('.celebration-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.className = 'celebration-layer';
+    document.body.appendChild(layer);
+  }
+  return layer;
+};
+
+const triggerCelebration = (): void => {
+  const layer = ensureCelebrationLayer();
+  const message = CELEBRATION_MESSAGES[celebrationIndex % CELEBRATION_MESSAGES.length];
+  const animation = CELEBRATION_ANIMATIONS[celebrationIndex % CELEBRATION_ANIMATIONS.length];
+  celebrationIndex += 1;
+
+  const messageEl = document.createElement('div');
+  messageEl.className = `celebration-message ${animation}`;
+  messageEl.textContent = message;
+  layer.appendChild(messageEl);
+
+  const confettiShower = document.createElement('div');
+  confettiShower.className = 'confetti-shower';
+
+  for (let i = 0; i < CONFETTI_PIECE_COUNT; i += 1) {
+    const piece = document.createElement('span');
+    piece.className = 'confetti-piece';
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.setProperty('--confetti-delay', `${Math.random() * 0.4}s`);
+    piece.style.setProperty('--confetti-duration', `${1.2 + Math.random() * 0.8}s`);
+    piece.style.setProperty('--confetti-rotation', `${Math.random() * 360}deg`);
+    piece.style.backgroundColor = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    confettiShower.appendChild(piece);
+  }
+
+  layer.appendChild(confettiShower);
+
+  window.setTimeout(() => {
+    messageEl.remove();
+    confettiShower.remove();
+    if (layer.childElementCount === 0) {
+      layer.remove();
+    }
+  }, CELEBRATION_DURATION_MS);
+};
+
+const scheduleCelebration = (): void => {
+  window.setTimeout(() => {
+    triggerCelebration();
+  }, CELEBRATION_DELAY_MS);
+};
+
 export const renderToday = (state: AppState) => {
   const remaining = Math.max(state.dailyGoal - state.derived.todayTotal, 0);
 
@@ -10,7 +70,10 @@ export const renderToday = (state: AppState) => {
       <div class="rounded-3xl bg-slate-900 p-6 shadow-lg">
         <button
           class="w-full rounded-2xl bg-sky-500 py-10 text-5xl font-black text-slate-950 shadow-lg transition active:scale-95"
-          @click=${() => addTen()}
+          @click=${() => {
+            addTen();
+            scheduleCelebration();
+          }}
         >
           +10
         </button>
