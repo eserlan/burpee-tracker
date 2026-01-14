@@ -38,6 +38,18 @@ body {
   animation: celebration-bounce 1.6s ease-out forwards;
 }
 
+.goal-celebration-message.celebration-pop {
+  animation-duration: 2.4s;
+}
+
+.goal-celebration-message.celebration-spin {
+  animation-duration: 2.6s;
+}
+
+.goal-celebration-message.celebration-bounce {
+  animation-duration: 2.6s;
+}
+
 .confetti-shower {
   position: absolute;
   inset: 0;
@@ -51,6 +63,22 @@ body {
   border-radius: 3px;
   opacity: 0;
   animation: confetti-fall var(--confetti-duration, 1.6s) ease-in var(--confetti-delay, 0s) forwards;
+  transform: rotate(var(--confetti-rotation, 0deg));
+}
+
+.goal-confetti-shower {
+  position: absolute;
+  inset: 0;
+}
+
+.goal-confetti-piece {
+  position: absolute;
+  bottom: -12%;
+  width: 10px;
+  height: 18px;
+  border-radius: 999px;
+  opacity: 0;
+  animation: goal-confetti-rise var(--confetti-duration, 2.4s) ease-out var(--confetti-delay, 0s) forwards;
   transform: rotate(var(--confetti-rotation, 0deg));
 }
 
@@ -112,6 +140,23 @@ body {
   }
   100% {
     transform: translateY(120vh) rotate(calc(var(--confetti-rotation, 0deg) + 200deg));
+    opacity: 0;
+  }
+}
+
+@keyframes goal-confetti-rise {
+  0% {
+    transform: translateY(0) rotate(var(--confetti-rotation, 0deg));
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  55% {
+    transform: translateY(-55vh) rotate(calc(var(--confetti-rotation, 0deg) + 120deg));
+  }
+  100% {
+    transform: translateY(120vh) rotate(calc(var(--confetti-rotation, 0deg) + 260deg));
     opacity: 0;
   }
 }
