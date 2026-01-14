@@ -132,15 +132,11 @@ export const renderToday = (state: AppState) => {
         <button
           class="w-full rounded-2xl bg-sky-500 py-10 text-5xl font-black text-slate-950 shadow-lg transition active:scale-95"
           @click=${async () => {
-            const totalBefore = state.derived.todayTotal;
+            const wasBelowGoal = state.derived.todayTotal < state.dailyGoal;
             await addTen();
-            const totalAfter = state.derived.todayTotal;
-            
-            const crossedGoal = totalBefore < state.dailyGoal && totalAfter >= state.dailyGoal;
-            if (crossedGoal) {
+            scheduleCelebration();
+            if (wasBelowGoal && state.derived.todayTotal >= state.dailyGoal) {
               scheduleGoalCelebration();
-            } else {
-              scheduleCelebration();
             }
           }}
         >
