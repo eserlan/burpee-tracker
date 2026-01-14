@@ -10,7 +10,7 @@ export default defineConfig({
       manifest: {
         name: 'Burpee +10 Tracker',
         short_name: 'Burpee +10',
-        start_url: './#/today',
+        start_url: '/burpee-tracker/#/today',
         display: 'standalone',
         background_color: '#0f172a',
         theme_color: '#0f172a',
@@ -18,8 +18,13 @@ export default defineConfig({
           {
             src: 'favicon.svg',
             sizes: 'any',
-            type: 'image/svg+xml'
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
           }
+          // TODO: Add PNG icons for better iOS support:
+          // - icon-192.png (192x192)
+          // - icon-512.png (512x512)
+          // These can be generated from favicon.svg using image conversion tools
         ]
       },
       workbox: {

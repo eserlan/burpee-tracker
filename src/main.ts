@@ -12,7 +12,7 @@ const renderRoute = () => {
   const content = (() => {
     switch (route) {
       case 'history':
-        return renderHistory(state);
+        return renderHistory(state, renderRoute);
       case 'settings':
         return renderSettings(state);
       case 'today':
@@ -29,7 +29,13 @@ const start = async () => {
   subscribe(renderRoute);
   onRouteChange(renderRoute);
 
-  registerSW({ immediate: true });
+  if ('serviceWorker' in navigator) {
+    try {
+      registerSW({ immediate: true });
+    } catch (error) {
+      console.error('Service worker registration failed:', error);
+    }
+  }
 
   if (!window.location.hash) {
     window.location.hash = '#/today';

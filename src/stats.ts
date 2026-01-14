@@ -25,6 +25,9 @@ const formatDateKey = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+// formatTime displays timestamps in the local timezone. If a user travels across
+// timezones or changes their device timezone, displayed times will shift accordingly.
+// This aligns with the training day calculation which uses 04:00 in local time.
 export const formatTime = (timestamp: string): string => {
   const date = new Date(timestamp);
   const hours = date.getHours().toString().padStart(2, '0');

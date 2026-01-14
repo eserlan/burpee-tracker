@@ -10,10 +10,6 @@ export const getRoute = (): Route => {
   return 'today';
 };
 
-export const navigate = (route: Route): void => {
-  window.location.hash = `#/${route}`;
-};
-
 export const onRouteChange = (handler: () => void): void => {
   window.addEventListener('hashchange', handler);
 };
