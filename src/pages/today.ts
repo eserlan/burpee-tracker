@@ -5,6 +5,9 @@ import { addTen, undoLast } from '../state';
 const CELEBRATION_MESSAGES = ['Nice work!', 'Keep it up!', 'Burpees logged!', 'Crushing it!', 'Strong set!'];
 const CELEBRATION_ANIMATIONS = ['celebration-pop', 'celebration-spin', 'celebration-bounce'];
 const CONFETTI_COLORS = ['#38bdf8', '#fbbf24', '#f472b6', '#4ade80', '#a78bfa'];
+const CONFETTI_PIECE_COUNT = 28;
+const CELEBRATION_DURATION_MS = 2200;
+const CELEBRATION_DELAY_MS = 450;
 let celebrationIndex = 0;
 
 const ensureCelebrationLayer = (): HTMLDivElement => {
@@ -31,7 +34,7 @@ const triggerCelebration = (): void => {
   const confettiShower = document.createElement('div');
   confettiShower.className = 'confetti-shower';
 
-  for (let i = 0; i < 28; i += 1) {
+  for (let i = 0; i < CONFETTI_PIECE_COUNT; i += 1) {
     const piece = document.createElement('span');
     piece.className = 'confetti-piece';
     piece.style.left = `${Math.random() * 100}%`;
@@ -50,13 +53,13 @@ const triggerCelebration = (): void => {
     if (layer.childElementCount === 0) {
       layer.remove();
     }
-  }, 2200);
+  }, CELEBRATION_DURATION_MS);
 };
 
 const scheduleCelebration = (): void => {
   window.setTimeout(() => {
     triggerCelebration();
-  }, 450);
+  }, CELEBRATION_DELAY_MS);
 };
 
 export const renderToday = (state: AppState) => {
