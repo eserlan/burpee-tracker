@@ -22,8 +22,7 @@ const handleImport = async (file: File | null) => {
   try {
     data = JSON.parse(text) as ExportBlobV1;
   } catch (error) {
-    console.error('Failed to parse imported JSON file.', error);
-    throw error;
+    throw new Error('Failed to parse JSON. Please ensure the file is valid JSON.');
   }
   const confirmed = window.confirm('Importing will replace all local data. Continue?');
   if (!confirmed) {

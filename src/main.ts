@@ -30,11 +30,9 @@ const start = async () => {
   onRouteChange(renderRoute);
 
   if ('serviceWorker' in navigator) {
-    try {
-      registerSW({ immediate: true });
-    } catch (error) {
+    registerSW({ immediate: true }).catch((error) => {
       console.error('Service worker registration failed:', error);
-    }
+    });
   }
 
   if (!window.location.hash) {
