@@ -70,8 +70,8 @@ export const renderToday = (state: AppState) => {
       <div class="rounded-3xl bg-slate-900 p-6 shadow-lg">
         <button
           class="w-full rounded-2xl bg-sky-500 py-10 text-5xl font-black text-slate-950 shadow-lg transition active:scale-95"
-          @click=${async () => {
-            await addTen();
+          @click=${() => {
+            addTen();
             scheduleCelebration();
           }}
         >
