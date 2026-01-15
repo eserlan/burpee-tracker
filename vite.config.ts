@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       strategies: 'injectManifest',
+      injectRegister: 'auto',
       srcDir: 'src',
       filename: 'sw.ts',
       includeAssets: ['favicon.svg'],

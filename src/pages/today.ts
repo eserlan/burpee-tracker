@@ -197,6 +197,7 @@ export const renderToday = (state: AppState) => {
                   await undoLast();
                 } catch (error) {
                   console.error('Undo click failed:', error);
+                  window.alert('Something went wrong while undoing your last set. Please try again.');
                 }
               }}
             >

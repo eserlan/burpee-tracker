@@ -59,10 +59,20 @@ const checkAndNotify = async () => {
     }
 };
 
-self.addEventListener('periodicsync' as const, (event: unknown) => {
-    const syncEvent = event as { tag: string; waitUntil: (p: Promise<void>) => void };
-    if (syncEvent.tag === 'burpee-reminder') {
-        syncEvent.waitUntil(checkAndNotify());
+interface PeriodicSyncEvent extends ExtendableEvent {
+    readonly tag: string;
+}
+
+function isPeriodicSyncEvent(event: Event): event is PeriodicSyncEvent {
+    return 'tag' in event && typeof (event as any).tag === 'string';
+}
+
+self.addEventListener('periodicsync' as const, (event: Event) => {
+    if (!isPeriodicSyncEvent(event)) {
+        return;
+    }
+    if (event.tag === 'burpee-reminder') {
+        event.waitUntil(checkAndNotify());
     }
 });
 

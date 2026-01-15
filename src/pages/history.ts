@@ -4,7 +4,7 @@ import { formatTime } from '../stats';
 
 const expandedDays = new Set<string>();
 
-const toggleDay = (dateKey: string, rerender: () => void) => {
+export const toggleDay = (dateKey: string, rerender: () => void) => {
   if (expandedDays.has(dateKey)) {
     expandedDays.delete(dateKey);
   } else {
@@ -16,6 +16,11 @@ const toggleDay = (dateKey: string, rerender: () => void) => {
 /** Clear expanded state when leaving the history page to prevent memory leak */
 export const clearExpandedDays = (): void => {
   expandedDays.clear();
+};
+
+/** Internal helper for testing only */
+export const getExpandedDaysCount = (): number => {
+  return expandedDays.size;
 };
 
 export const renderHistory = (state: AppState, rerender?: () => void) => {

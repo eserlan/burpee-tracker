@@ -81,20 +81,25 @@ export const initState = async (): Promise<void> => {
 };
 
 export const addTen = async (): Promise<void> => {
-  // crypto.randomUUID() requires a secure context (HTTPS or localhost).
-  // This works on GitHub Pages (HTTPS) and during local development.
   const entry: Entry = {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
     count: 10
   };
+
+  // Optimistic update
+  const previousEntries = state.entries;
+  state.entries = [...state.entries, entry];
+  emitChange();
+
   try {
     await addEntry(entry);
-    state.entries = [...state.entries, entry];
-    emitChange();
   } catch (error) {
+    // Rollback
+    state.entries = previousEntries;
+    emitChange();
     console.error('Failed to add entry:', error);
-    window.alert('Failed to save your burpees. Please try again.');
+    window.alert('Failed to save your burpees. Your last set was not recorded.');
   }
 };
 
@@ -129,13 +134,20 @@ export const setGoal = async (goal: number): Promise<void> => {
     window.alert('Goal must be between 10 and 1000, and divisible by 10.');
     return;
   }
+
+  // Store previous for rollback
+  const previousGoal = state.dailyGoal;
   state.dailyGoal = goal;
+  emitChange();
+
   try {
     await setDailyGoal(goal);
-    emitChange();
   } catch (error) {
+    // Rollback
+    state.dailyGoal = previousGoal;
+    emitChange();
     console.error('Failed to set goal:', error);
-    window.alert('Failed to save your new goal. Please try again.');
+    window.alert('Failed to save your new goal. Reverting to previous goal.');
   }
 };
 

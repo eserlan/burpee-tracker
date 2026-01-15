@@ -1,16 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { clearExpandedDays } from '../pages/history';
+import { clearExpandedDays, getExpandedDaysCount, toggleDay } from '../pages/history';
 
 describe('clearExpandedDays', () => {
-  it('does not throw when called', () => {
-    // Basic smoke test - the function should not throw
-    expect(() => clearExpandedDays()).not.toThrow();
-  });
-
-  it('can be called multiple times', () => {
+  it('actually clears the expanded days count', () => {
+    const rerender = () => {};
+    
+    // Start empty
     clearExpandedDays();
+    expect(getExpandedDaysCount()).toBe(0);
+    
+    // Expand a day
+    toggleDay('2024-01-15', rerender);
+    expect(getExpandedDaysCount()).toBe(1);
+    
+    // Expand another
+    toggleDay('2024-01-16', rerender);
+    expect(getExpandedDaysCount()).toBe(2);
+    
+    // Clear
     clearExpandedDays();
-    // Should not throw
-    expect(true).toBe(true);
+    expect(getExpandedDaysCount()).toBe(0);
   });
 });
