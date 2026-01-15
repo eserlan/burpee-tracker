@@ -26,15 +26,12 @@ export const renderShell = (route: Route, content: TemplateResult) => {
             <p class="text-xs text-slate-400">Tap once. Track forever.</p>
           </div>
           <nav class="flex gap-2">
-            ${navLink('today', 'Today', route)}
-            ${navLink('history', 'History', route)}
+            ${navLink('today', 'Today', route)} ${navLink('history', 'History', route)}
             ${navLink('settings', 'Settings', route)}
           </nav>
         </div>
       </header>
-      <main class="mx-auto max-w-3xl px-4 py-6">
-        ${content}
-      </main>
+      <main class="mx-auto max-w-3xl px-4 py-6">${content}</main>
     </div>
   `;
 

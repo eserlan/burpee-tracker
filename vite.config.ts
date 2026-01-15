@@ -5,7 +5,9 @@ export default defineConfig({
   base: '/burpee-tracker/',
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Burpee +10 Tracker',

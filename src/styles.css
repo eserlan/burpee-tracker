@@ -78,7 +78,8 @@ body {
   height: 18px;
   border-radius: 999px;
   opacity: 0;
-  animation: goal-confetti-rise var(--confetti-duration, 2.4s) ease-out var(--confetti-delay, 0s) forwards;
+  animation: goal-confetti-rise var(--confetti-duration, 2.4s) ease-out var(--confetti-delay, 0s)
+    forwards;
   transform: rotate(var(--confetti-rotation, 0deg));
 }
 

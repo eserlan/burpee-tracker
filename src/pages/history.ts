@@ -13,6 +13,11 @@ const toggleDay = (dateKey: string, rerender: () => void) => {
   rerender();
 };
 
+/** Clear expanded state when leaving the history page to prevent memory leak */
+export const clearExpandedDays = (): void => {
+  expandedDays.clear();
+};
+
 export const renderHistory = (state: AppState, rerender?: () => void) => {
   if (state.derived.history.length === 0) {
     return html`<p class="text-sm text-slate-400">No history yet. Start with a +10.</p>`;

@@ -1,10 +1,9 @@
 import './styles.css';
-import { registerSW } from 'virtual:pwa-register';
 import { renderShell } from './ui/shell';
 import { getRoute, onRouteChange } from './router';
 import { initState, state, subscribe } from './state';
 import { renderToday } from './pages/today';
-import { renderHistory } from './pages/history';
+import { clearExpandedDays, renderHistory } from './pages/history';
 import { renderSettings } from './pages/settings';
 
 const renderRoute = () => {
@@ -14,9 +13,11 @@ const renderRoute = () => {
       case 'history':
         return renderHistory(state, renderRoute);
       case 'settings':
+        clearExpandedDays();
         return renderSettings(state);
       case 'today':
       default:
+        clearExpandedDays();
         return renderToday(state);
     }
   })();
@@ -28,18 +29,6 @@ const start = async () => {
   renderRoute();
   subscribe(renderRoute);
   onRouteChange(renderRoute);
-
-  if ('serviceWorker' in navigator) {
-    const updateSW = registerSW({
-      immediate: true,
-      onNeedRefresh() {
-        updateSW(true);
-      },
-      onRegisterError(error) {
-        console.error('Service worker registration failed:', error);
-      }
-    });
-  }
 
   if (!window.location.hash) {
     window.location.hash = '#/today';

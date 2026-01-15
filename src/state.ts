@@ -1,5 +1,13 @@
 import type { Entry, ExportBlobV1 } from './types';
-import { addEntry, deleteEntry, exportAll, getDailyGoal, importReplace, listEntries, setDailyGoal } from './db';
+import {
+  addEntry,
+  deleteEntry,
+  exportAll,
+  getDailyGoal,
+  importReplace,
+  listEntries,
+  setDailyGoal
+} from './db';
 import { buildHistory, currentStreak, longestStreak, totalsByDay } from './stats';
 import { todayKey, trainingDayKey } from './time';
 
@@ -61,10 +69,15 @@ export const subscribe = (listener: () => void): (() => void) => {
 };
 
 export const initState = async (): Promise<void> => {
-  const [goal, entries] = await Promise.all([getDailyGoal(), listEntries()]);
-  state.dailyGoal = goal ?? DEFAULT_GOAL;
-  state.entries = entries;
-  emitChange();
+  try {
+    const [goal, entries] = await Promise.all([getDailyGoal(), listEntries()]);
+    state.dailyGoal = goal ?? DEFAULT_GOAL;
+    state.entries = entries;
+    emitChange();
+  } catch (error) {
+    console.error('Failed to initialize state:', error);
+    window.alert('Failed to load your data. Please refresh the page.');
+  }
 };
 
 export const addTen = async (): Promise<void> => {
@@ -75,19 +88,38 @@ export const addTen = async (): Promise<void> => {
     timestamp: new Date().toISOString(),
     count: 10
   };
-  await addEntry(entry);
-  state.entries = [...state.entries, entry];
-  emitChange();
+  try {
+    await addEntry(entry);
+    state.entries = [...state.entries, entry];
+    emitChange();
+  } catch (error) {
+    console.error('Failed to add entry:', error);
+    window.alert('Failed to save your burpees. Please try again.');
+  }
 };
 
 export const undoLast = async (): Promise<void> => {
-  if (state.entries.length === 0) {
+  // Find the most recent entry from today's training day only
+  const today = todayKey();
+  const todaysEntries = state.entries.filter(
+    (entry) => trainingDayKey(new Date(entry.timestamp)) === today
+  );
+
+  if (todaysEntries.length === 0) {
     return;
   }
-  const lastEntry = state.entries[state.entries.length - 1];
-  await deleteEntry(lastEntry.id);
-  state.entries = state.entries.slice(0, -1);
-  emitChange();
+
+  // Get the last entry from today (entries are sorted by timestamp)
+  const lastTodayEntry = todaysEntries[todaysEntries.length - 1];
+
+  try {
+    await deleteEntry(lastTodayEntry.id);
+    state.entries = state.entries.filter((entry) => entry.id !== lastTodayEntry.id);
+    emitChange();
+  } catch (error) {
+    console.error('Failed to undo entry:', error);
+    window.alert('Failed to undo. Please try again.');
+  }
 };
 
 const isValidGoal = (goal: number): boolean => goal >= 10 && goal <= 1000 && goal % 10 === 0;
@@ -98,8 +130,13 @@ export const setGoal = async (goal: number): Promise<void> => {
     return;
   }
   state.dailyGoal = goal;
-  await setDailyGoal(goal);
-  emitChange();
+  try {
+    await setDailyGoal(goal);
+    emitChange();
+  } catch (error) {
+    console.error('Failed to set goal:', error);
+    window.alert('Failed to save your new goal. Please try again.');
+  }
 };
 
 export const exportJson = async (): Promise<string> => {
