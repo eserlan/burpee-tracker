@@ -2,8 +2,18 @@ import { html } from 'lit-html';
 import type { AppState } from '../state';
 import { addTen, undoLast } from '../state';
 
-const CELEBRATION_MESSAGES = ['Nice work!', 'Keep it up!', 'Burpees logged!', 'Crushing it!', 'Strong set!'];
-const GOAL_MESSAGES = ['Daily goal smashed!', 'Goal reached! Great hustle!', 'You did it! Daily goal complete!'];
+const CELEBRATION_MESSAGES = [
+  'Nice work!',
+  'Keep it up!',
+  'Burpees logged!',
+  'Crushing it!',
+  'Strong set!'
+];
+const GOAL_MESSAGES = [
+  'Daily goal smashed!',
+  'Goal reached! Great hustle!',
+  'You did it! Daily goal complete!'
+];
 const CELEBRATION_ANIMATIONS = ['celebration-pop', 'celebration-spin', 'celebration-bounce'];
 const CONFETTI_COLORS = ['#38bdf8', '#fbbf24', '#f472b6', '#4ade80', '#a78bfa'];
 const CONFETTI_PIECE_COUNT = 28;
@@ -53,8 +63,12 @@ const triggerCelebration = ({
   const layer = ensureCelebrationLayer();
 
   const messageEl = document.createElement('div');
-  messageEl.className = ['celebration-message', messageClassName, animation].filter(Boolean).join(' ');
+  messageEl.className = ['celebration-message', messageClassName, animation]
+    .filter(Boolean)
+    .join(' ');
   messageEl.textContent = message;
+  messageEl.setAttribute('role', 'status');
+  messageEl.setAttribute('aria-live', 'polite');
   layer.appendChild(messageEl);
 
   const confettiShower = document.createElement('div');
@@ -65,7 +79,10 @@ const triggerCelebration = ({
     piece.className = confettiPieceClassName;
     piece.style.left = `${Math.random() * 100}%`;
     piece.style.setProperty('--confetti-delay', `${Math.random() * confettiDelayMax}s`);
-    piece.style.setProperty('--confetti-duration', `${confettiDurationMin + Math.random() * (confettiDurationMax - confettiDurationMin)}s`);
+    piece.style.setProperty(
+      '--confetti-duration',
+      `${confettiDurationMin + Math.random() * (confettiDurationMax - confettiDurationMin)}s`
+    );
     piece.style.setProperty('--confetti-rotation', `${Math.random() * 360}deg`);
     piece.style.backgroundColor = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
     confettiShower.appendChild(piece);
@@ -131,11 +148,12 @@ export const renderToday = (state: AppState) => {
       <div class="rounded-3xl bg-slate-900 p-6 shadow-lg">
         <button
           class="w-full rounded-2xl bg-sky-500 py-10 text-5xl font-black text-slate-950 shadow-lg transition active:scale-95"
+          aria-label="Add 10 burpees"
           @click=${async () => {
             const totalBefore = state.derived.todayTotal;
             await addTen();
             const totalAfter = state.derived.todayTotal;
-            
+
             const crossedGoal = totalBefore < state.dailyGoal && totalAfter >= state.dailyGoal;
             if (crossedGoal) {
               scheduleGoalCelebration();
@@ -160,8 +178,12 @@ export const renderToday = (state: AppState) => {
         </div>
         <div class="rounded-2xl bg-slate-900 p-4">
           <p class="text-xs uppercase tracking-widest text-slate-400">Streaks</p>
-          <p class="mt-2 text-sm text-slate-300">Current: <span class="font-semibold text-white">${state.derived.currentStreak}</span></p>
-          <p class="text-sm text-slate-300">Longest: <span class="font-semibold text-white">${state.derived.longestStreak}</span></p>
+          <p class="mt-2 text-sm text-slate-300">
+            Current: <span class="font-semibold text-white">${state.derived.currentStreak}</span>
+          </p>
+          <p class="text-sm text-slate-300">
+            Longest: <span class="font-semibold text-white">${state.derived.longestStreak}</span>
+          </p>
         </div>
       </div>
 
@@ -169,7 +191,15 @@ export const renderToday = (state: AppState) => {
         ? html`
             <button
               class="w-full rounded-2xl border border-slate-700 bg-slate-900 py-3 text-sm font-semibold text-slate-200 transition hover:border-slate-500"
-              @click=${() => undoLast()}
+              aria-label="Undo last 10 burpees"
+              @click=${async () => {
+                try {
+                  await undoLast();
+                } catch (error) {
+                  console.error('Undo click failed:', error);
+                  window.alert('Something went wrong while undoing your last set. Please try again.');
+                }
+              }}
             >
               Undo last +10
             </button>

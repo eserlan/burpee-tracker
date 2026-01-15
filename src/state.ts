@@ -1,5 +1,13 @@
 import type { Entry, ExportBlobV1 } from './types';
-import { addEntry, deleteEntry, exportAll, getDailyGoal, importReplace, listEntries, setDailyGoal } from './db';
+import {
+  addEntry,
+  deleteEntry,
+  exportAll,
+  getDailyGoal,
+  importReplace,
+  listEntries,
+  setDailyGoal
+} from './db';
 import { buildHistory, currentStreak, longestStreak, totalsByDay } from './stats';
 import { todayKey, trainingDayKey } from './time';
 
@@ -61,33 +69,62 @@ export const subscribe = (listener: () => void): (() => void) => {
 };
 
 export const initState = async (): Promise<void> => {
-  const [goal, entries] = await Promise.all([getDailyGoal(), listEntries()]);
-  state.dailyGoal = goal ?? DEFAULT_GOAL;
-  state.entries = entries;
-  emitChange();
+  try {
+    const [goal, entries] = await Promise.all([getDailyGoal(), listEntries()]);
+    state.dailyGoal = goal ?? DEFAULT_GOAL;
+    state.entries = entries;
+    emitChange();
+  } catch (error) {
+    console.error('Failed to initialize state:', error);
+    window.alert('Failed to load your data. Please refresh the page.');
+  }
 };
 
 export const addTen = async (): Promise<void> => {
-  // crypto.randomUUID() requires a secure context (HTTPS or localhost).
-  // This works on GitHub Pages (HTTPS) and during local development.
   const entry: Entry = {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
     count: 10
   };
-  await addEntry(entry);
+
+  // Optimistic update
+  const previousEntries = state.entries;
   state.entries = [...state.entries, entry];
   emitChange();
+
+  try {
+    await addEntry(entry);
+  } catch (error) {
+    // Rollback
+    state.entries = previousEntries;
+    emitChange();
+    console.error('Failed to add entry:', error);
+    window.alert('Failed to save your burpees. Your last set was not recorded.');
+  }
 };
 
 export const undoLast = async (): Promise<void> => {
-  if (state.entries.length === 0) {
+  // Find the most recent entry from today's training day only
+  const today = todayKey();
+  const todaysEntries = state.entries.filter(
+    (entry) => trainingDayKey(new Date(entry.timestamp)) === today
+  );
+
+  if (todaysEntries.length === 0) {
     return;
   }
-  const lastEntry = state.entries[state.entries.length - 1];
-  await deleteEntry(lastEntry.id);
-  state.entries = state.entries.slice(0, -1);
-  emitChange();
+
+  // Get the last entry from today (entries are sorted by timestamp)
+  const lastTodayEntry = todaysEntries[todaysEntries.length - 1];
+
+  try {
+    await deleteEntry(lastTodayEntry.id);
+    state.entries = state.entries.filter((entry) => entry.id !== lastTodayEntry.id);
+    emitChange();
+  } catch (error) {
+    console.error('Failed to undo entry:', error);
+    window.alert('Failed to undo. Please try again.');
+  }
 };
 
 const isValidGoal = (goal: number): boolean => goal >= 10 && goal <= 1000 && goal % 10 === 0;
@@ -97,9 +134,21 @@ export const setGoal = async (goal: number): Promise<void> => {
     window.alert('Goal must be between 10 and 1000, and divisible by 10.');
     return;
   }
+
+  // Store previous for rollback
+  const previousGoal = state.dailyGoal;
   state.dailyGoal = goal;
-  await setDailyGoal(goal);
   emitChange();
+
+  try {
+    await setDailyGoal(goal);
+  } catch (error) {
+    // Rollback
+    state.dailyGoal = previousGoal;
+    emitChange();
+    console.error('Failed to set goal:', error);
+    window.alert('Failed to save your new goal. Reverting to previous goal.');
+  }
 };
 
 export const exportJson = async (): Promise<string> => {
