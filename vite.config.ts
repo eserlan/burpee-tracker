@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     VitePWA({
       strategies: 'injectManifest',
-      injectRegister: 'auto',
+      injectRegister: 'inline',
       srcDir: 'src',
       filename: 'sw.ts',
       includeAssets: ['favicon.svg'],
@@ -33,6 +33,10 @@ export default defineConfig({
       workbox: {
         cacheId: 'burpee-tracker-v4',
         globPatterns: ['**/*.{js,css,html,svg,png,ico,txt}']
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module'
       }
     })
   ]

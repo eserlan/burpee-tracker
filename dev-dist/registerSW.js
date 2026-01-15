@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/burpee-tracker/dev-sw.js?dev-sw', { scope: '/burpee-tracker/', type: 'module' })
