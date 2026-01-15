@@ -28,7 +28,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        cacheId: 'burpee-tracker-v3',
+        cacheId: 'burpee-tracker-v4',
         globPatterns: ['**/*.{js,css,html,svg,png,ico,txt}']
       }
     })
