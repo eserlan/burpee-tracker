@@ -64,7 +64,7 @@ interface PeriodicSyncEvent extends ExtendableEvent {
 }
 
 function isPeriodicSyncEvent(event: Event): event is PeriodicSyncEvent {
-    return 'tag' in event && typeof (event as any).tag === 'string';
+    return 'tag' in event && typeof (event as Record<string, unknown>).tag === 'string';
 }
 
 self.addEventListener('periodicsync' as const, (event: Event) => {
