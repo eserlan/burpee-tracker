@@ -4,7 +4,7 @@ import { getRoute, onRouteChange } from './router';
 import { initState, state, subscribe } from './state';
 import { renderToday } from './pages/today';
 import { clearExpandedDays, renderHistory } from './pages/history';
-import { renderSettings } from './pages/settings';
+import { renderSettings, updateNotificationStatus } from './pages/settings';
 
 const renderRoute = () => {
   const route = getRoute();
@@ -22,6 +22,10 @@ const renderRoute = () => {
     }
   })();
   renderShell(route, content);
+
+  if (route === 'settings') {
+    updateNotificationStatus();
+  }
 };
 
 const start = async () => {
