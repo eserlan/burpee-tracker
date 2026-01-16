@@ -44,9 +44,9 @@ export const renderSettings = (state: AppState) => {
           step="10"
           .value=${String(state.dailyGoal)}
           @change=${(event: Event) => {
-            const target = event.target as HTMLInputElement;
-            setGoal(Number(target.value));
-          }}
+      const target = event.target as HTMLInputElement;
+      setGoal(Number(target.value));
+    }}
         />
         <p class="mt-2 text-xs text-slate-400">Step size: 10. Range: 10–1000.</p>
       </div>
@@ -56,49 +56,72 @@ export const renderSettings = (state: AppState) => {
           <div>
             <p class="text-xs uppercase tracking-widest text-slate-400">Reminders</p>
             <p class="mt-1 text-sm text-slate-200">Notify me if I'm inactive for 3h</p>
+            <div id="reminder-status" class="mt-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-tighter">
+              <span class="h-2 w-2 rounded-full bg-slate-700" id="status-dot"></span>
+              <span class="text-slate-500" id="status-text">Checking status...</span>
+            </div>
           </div>
-          <button
-            class="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 transition active:scale-95"
-            @click=${async () => {
-              if (!('Notification' in window)) {
-                window.alert('Notifications are not supported on this browser.');
-                return;
-              }
+          <div class="flex gap-2">
+            <button
+              id="test-notification-btn"
+              class="hidden rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-semibold text-slate-400 transition active:scale-95"
+              @click=${() => {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Burpee Tracker Test', {
+          body: 'This is a test notification. It works!',
+          icon: '/burpee-tracker/favicon.svg',
+        });
+      }
+    }}
+            >
+              Test
+            </button>
+            <button
+              id="enable-reminders-btn"
+              class="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 transition active:scale-95"
+              @click=${async () => {
+      if (!('Notification' in window)) {
+        window.alert('Notifications are not supported on this browser.');
+        return;
+      }
 
-              const permission = await Notification.requestPermission();
-              if (permission !== 'granted') {
-                window.alert(
-                  'Permission denied. Please enable notifications in your browser settings.'
-                );
-                return;
-              }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        window.alert(
+          'Permission denied. Please enable notifications in your browser settings.'
+        );
+        updateStatus();
+        return;
+      }
 
-              if (
-                'serviceWorker' in navigator &&
-                'periodicSync' in (await navigator.serviceWorker.ready)
-              ) {
-                const registration = await navigator.serviceWorker.ready;
-                try {
-                  // @ts-expect-error - periodicSync is not yet in the official Typescript types
-                  await registration.periodicSync.register('burpee-reminder', {
-                    minInterval: 3 * 60 * 60 * 1000 // 3 hours
-                  });
-                  window.alert(
-                    'Reminders enabled! You will be notified during daytime if you stay inactive.'
-                  );
-                } catch (error) {
-                  console.error('Periodic Sync registration failed:', error);
-                  window.alert('Background sync failed. You might need to install the PWA first.');
-                }
-              } else {
-                window.alert(
-                  'Periodic Sync is not supported on this browser/OS. Reminders might not work in the background.'
-                );
-              }
-            }}
-          >
-            Enable
-          </button>
+      if (
+        'serviceWorker' in navigator &&
+        'periodicSync' in (await navigator.serviceWorker.ready)
+      ) {
+        const registration = await navigator.serviceWorker.ready;
+        try {
+          // @ts-expect-error - periodicSync is not yet in the official Typescript types
+          await registration.periodicSync.register('burpee-reminder', {
+            minInterval: 3 * 60 * 60 * 1000 // 3 hours
+          });
+          window.alert(
+            'Reminders enabled! You will be notified during daytime if you stay inactive.'
+          );
+        } catch (error) {
+          console.error('Periodic Sync registration failed:', error);
+          window.alert('Background sync failed. You might need to install the PWA first.');
+        }
+      } else {
+        window.alert(
+          'Periodic Sync is not supported on this browser/OS. Reminders might not work in the background.'
+        );
+      }
+      updateStatus();
+    }}
+            >
+              Enable
+            </button>
+          </div>
         </div>
         <p class="text-[10px] leading-relaxed text-slate-500">
           Reminders only trigger between 8 AM and 9 PM. Requires a browser that supports Periodic
@@ -106,15 +129,76 @@ export const renderSettings = (state: AppState) => {
         </p>
       </div>
 
+      <script>
+        // Inline script to handle the status indicator updates
+        const updateStatus = async () => {
+          const dot = document.getElementById('status-dot');
+          const text = document.getElementById('status-text');
+          const testBtn = document.getElementById('test-notification-btn');
+          const enableBtn = document.getElementById('enable-reminders-btn');
+
+          if (!dot || !text) return;
+
+          if (!('Notification' in window)) {
+            dot.className = 'h-2 w-2 rounded-full bg-red-500';
+            text.innerText = 'Unsupported';
+            text.className = 'text-red-500';
+            return;
+          }
+
+          if (Notification.permission === 'denied') {
+            dot.className = 'h-2 w-2 rounded-full bg-red-500';
+            text.innerText = 'Blocked';
+            text.className = 'text-red-500';
+            return;
+          }
+
+          if (Notification.permission === 'granted') {
+            testBtn?.classList.remove('hidden');
+            
+            if ('serviceWorker' in navigator) {
+              const registration = await navigator.serviceWorker.ready;
+              // @ts-expect-error - periodicSync
+              if (registration.periodicSync) {
+                // @ts-expect-error - periodicSync
+                const tags = await registration.periodicSync.getTags();
+                if (tags.includes('burpee-reminder')) {
+                  dot.className = 'h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
+                  text.innerText = 'Active';
+                  text.className = 'text-emerald-500';
+                  if (enableBtn) enableBtn.innerText = 'Update';
+                  return;
+                }
+              }
+            }
+            
+            dot.className = 'h-2 w-2 rounded-full bg-amber-500';
+            text.innerText = 'Enabled (No Sync)';
+            text.className = 'text-amber-500';
+            return;
+          }
+
+          dot.className = 'h-2 w-2 rounded-full bg-slate-700';
+          text.innerText = 'Not Configured';
+          text.className = 'text-slate-500';
+        };
+        
+        // Polling status because periodicSync registration might happen asynchronously
+        // and we want to reflect it without a full state reload if possible.
+        // In a real app, this should be tied to the app lifecycle.
+        setTimeout(updateStatus, 0);
+        setInterval(updateStatus, 5000);
+      </script>
+
       <div class="rounded-2xl bg-slate-900 p-4 space-y-3">
         <p class="text-xs uppercase tracking-widest text-slate-400">Data</p>
         <button
           class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm font-semibold text-slate-200"
           aria-label="Export all data as JSON file"
           @click=${async () => {
-            const json = await exportJson();
-            downloadJson(json);
-          }}
+      const json = await exportJson();
+      downloadJson(json);
+    }}
         >
           Export JSON
         </button>
@@ -128,15 +212,15 @@ export const renderSettings = (state: AppState) => {
             type="file"
             accept="application/json"
             @change=${(event: Event) => {
-              const target = event.target as HTMLInputElement;
-              handleImport(target.files?.[0] ?? null).catch((error) => {
-                console.error(error);
-                const message =
-                  error instanceof Error && error.message ? error.message : 'Invalid import file.';
-                window.alert(message);
-              });
-              target.value = '';
-            }}
+      const target = event.target as HTMLInputElement;
+      handleImport(target.files?.[0] ?? null).catch((error) => {
+        console.error(error);
+        const message =
+          error instanceof Error && error.message ? error.message : 'Invalid import file.';
+        window.alert(message);
+      });
+      target.value = '';
+    }}
           />
         </label>
       </div>
