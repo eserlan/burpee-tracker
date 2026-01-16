@@ -31,6 +31,63 @@ const handleImport = async (file: File | null) => {
   await importJson(data);
 };
 
+export const updateNotificationStatus = async () => {
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  const testBtn = document.getElementById('test-notification-btn');
+  const enableBtn = document.getElementById('enable-reminders-btn');
+
+  if (!dot || !text) return;
+
+  try {
+    if (!('Notification' in window)) {
+      dot.className = 'h-2 w-2 rounded-full bg-red-500';
+      text.innerText = 'Unsupported';
+      text.className = 'text-red-500';
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      dot.className = 'h-2 w-2 rounded-full bg-red-500';
+      text.innerText = 'Blocked';
+      text.className = 'text-red-500';
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      testBtn?.classList.remove('hidden');
+
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        // @ts-expect-error - periodicSync
+        if (registration.periodicSync) {
+          // @ts-expect-error - periodicSync
+          const tags = await registration.periodicSync.getTags();
+          if (tags.includes('burpee-reminder')) {
+            dot.className = 'h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
+            text.innerText = 'Active';
+            text.className = 'text-emerald-500';
+            if (enableBtn) enableBtn.innerText = 'Update';
+            return;
+          }
+        }
+      }
+
+      dot.className = 'h-2 w-2 rounded-full bg-amber-500';
+      text.innerText = 'Enabled (No Sync)';
+      text.className = 'text-amber-500';
+      return;
+    }
+
+    dot.className = 'h-2 w-2 rounded-full bg-slate-700';
+    text.innerText = 'Not Configured';
+    text.className = 'text-slate-500';
+  } finally {
+    // Schedule next update to handle async state changes (like Service Worker registration or permission changes)
+    setTimeout(updateNotificationStatus, 1000);
+  }
+};
+
 export const renderSettings = (state: AppState) => {
   return html`
     <section class="space-y-6">
@@ -90,7 +147,7 @@ export const renderSettings = (state: AppState) => {
         window.alert(
           'Permission denied. Please enable notifications in your browser settings.'
         );
-        updateStatus();
+        updateNotificationStatus();
         return;
       }
 
@@ -116,7 +173,7 @@ export const renderSettings = (state: AppState) => {
           'Periodic Sync is not supported on this browser/OS. Reminders might not work in the background.'
         );
       }
-      updateStatus();
+      updateNotificationStatus();
     }}
             >
               Enable
@@ -129,66 +186,7 @@ export const renderSettings = (state: AppState) => {
         </p>
       </div>
 
-      <script>
-        // Inline script to handle the status indicator updates
-        const updateStatus = async () => {
-          const dot = document.getElementById('status-dot');
-          const text = document.getElementById('status-text');
-          const testBtn = document.getElementById('test-notification-btn');
-          const enableBtn = document.getElementById('enable-reminders-btn');
 
-          if (!dot || !text) return;
-
-          if (!('Notification' in window)) {
-            dot.className = 'h-2 w-2 rounded-full bg-red-500';
-            text.innerText = 'Unsupported';
-            text.className = 'text-red-500';
-            return;
-          }
-
-          if (Notification.permission === 'denied') {
-            dot.className = 'h-2 w-2 rounded-full bg-red-500';
-            text.innerText = 'Blocked';
-            text.className = 'text-red-500';
-            return;
-          }
-
-          if (Notification.permission === 'granted') {
-            testBtn?.classList.remove('hidden');
-            
-            if ('serviceWorker' in navigator) {
-              const registration = await navigator.serviceWorker.ready;
-              // @ts-expect-error - periodicSync
-              if (registration.periodicSync) {
-                // @ts-expect-error - periodicSync
-                const tags = await registration.periodicSync.getTags();
-                if (tags.includes('burpee-reminder')) {
-                  dot.className = 'h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
-                  text.innerText = 'Active';
-                  text.className = 'text-emerald-500';
-                  if (enableBtn) enableBtn.innerText = 'Update';
-                  return;
-                }
-              }
-            }
-            
-            dot.className = 'h-2 w-2 rounded-full bg-amber-500';
-            text.innerText = 'Enabled (No Sync)';
-            text.className = 'text-amber-500';
-            return;
-          }
-
-          dot.className = 'h-2 w-2 rounded-full bg-slate-700';
-          text.innerText = 'Not Configured';
-          text.className = 'text-slate-500';
-        };
-        
-        // Polling status because periodicSync registration might happen asynchronously
-        // and we want to reflect it without a full state reload if possible.
-        // In a real app, this should be tied to the app lifecycle.
-        setTimeout(updateStatus, 0);
-        setInterval(updateStatus, 5000);
-      </script>
 
       <div class="rounded-2xl bg-slate-900 p-4 space-y-3">
         <p class="text-xs uppercase tracking-widest text-slate-400">Data</p>
