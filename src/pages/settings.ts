@@ -57,25 +57,28 @@ export const updateNotificationStatus = async () => {
     if (Notification.permission === 'granted') {
       testBtn?.classList.remove('hidden');
 
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        // @ts-expect-error - periodicSync
-        if (registration.periodicSync) {
-          // @ts-expect-error - periodicSync
-          const tags = await registration.periodicSync.getTags();
-          if (tags.includes('burpee-reminder')) {
-            dot.className = 'h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
-            text.innerText = 'Active';
-            text.className = 'text-emerald-500';
-            if (enableBtn) enableBtn.innerText = 'Update';
-            return;
-          }
-        }
-      }
-
+      // Set baseline state for granted permission
       dot.className = 'h-2 w-2 rounded-full bg-amber-500';
       text.innerText = 'Enabled (No Sync)';
       text.className = 'text-amber-500';
+
+      if ('serviceWorker' in navigator) {
+        // We don't await the full SW ready here to avoid blocking the UI update if SW is slow
+        navigator.serviceWorker.ready.then(async (registration) => {
+          // @ts-expect-error - periodicSync
+          if (registration.periodicSync) {
+            // @ts-expect-error - periodicSync
+            const tags = await registration.periodicSync.getTags();
+            if (tags.includes('burpee-reminder')) {
+              dot.className =
+                'h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]';
+              text.innerText = 'Active';
+              text.className = 'text-emerald-500';
+              if (enableBtn) enableBtn.innerText = 'Update';
+            }
+          }
+        }).catch(err => console.error('Error checking SW status:', err));
+      }
       return;
     }
 
@@ -83,8 +86,11 @@ export const updateNotificationStatus = async () => {
     text.innerText = 'Not Configured';
     text.className = 'text-slate-500';
   } finally {
-    // Schedule next update to handle async state changes (like Service Worker registration or permission changes)
-    setTimeout(updateNotificationStatus, 1000);
+    // Only continue polling while the settings elements are present in the DOM.
+    if (document.getElementById('status-dot') || document.getElementById('status-text')) {
+      // Schedule next update to handle async state changes (like Service Worker registration or permission changes)
+      setTimeout(updateNotificationStatus, 1000);
+    }
   }
 };
 
