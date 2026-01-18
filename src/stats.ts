@@ -76,14 +76,26 @@ export const totalsByDay = (entries: Entry[]): Map<string, number> => {
 export const currentStreak = (totals: Map<string, number>, today: string, goal: number): number => {
   let streak = 0;
   let cursor = parseKeyToDate(today);
+  let carryover = 0;
 
   while (true) {
     const key = formatDateKey(cursor);
     const total = totals.get(key) ?? 0;
-    if (total < goal) {
+    if (streak === 0) {
+      if (total < goal) {
+        break;
+      }
+      streak = 1;
+      carryover = total - goal;
+    } else if (total >= goal) {
+      streak += 1;
+      carryover = total - goal;
+    } else if (carryover > 0 && total + carryover >= goal) {
+      streak += 1;
+      carryover = 0;
+    } else {
       break;
     }
-    streak += 1;
     cursor = addDays(cursor, -1);
   }
 
@@ -91,30 +103,52 @@ export const currentStreak = (totals: Map<string, number>, today: string, goal: 
 };
 
 export const longestStreak = (totals: Map<string, number>, goal: number): number => {
-  const qualified = Array.from(totals.entries())
-    .filter(([, total]) => total >= goal)
-    .map(([key]) => key)
-    .sort((a, b) => a.localeCompare(b));
+  const keys = Array.from(totals.keys()).sort((a, b) => a.localeCompare(b));
 
-  if (qualified.length === 0) {
+  if (keys.length === 0) {
     return 0;
   }
 
-  let longest = 1;
-  let current = 1;
+  let longest = 0;
+  let current = 0;
+  let pendingDeficit: number | null = null;
+  let pendingBase = 0;
 
-  for (let i = 1; i < qualified.length; i += 1) {
-    const prevDate = parseKeyToDate(qualified[i - 1]);
-    const currentDate = parseKeyToDate(qualified[i]);
-    const nextExpected = addDays(prevDate, 1).toDateString();
-    if (currentDate.toDateString() === nextExpected) {
+  let cursor = parseKeyToDate(keys[0]);
+  const end = parseKeyToDate(keys[keys.length - 1]);
+
+  while (cursor <= end) {
+    const key = formatDateKey(cursor);
+    const total = totals.get(key) ?? 0;
+
+    if (pendingDeficit !== null) {
+      if (total >= goal + pendingDeficit) {
+        current = pendingBase + 2;
+        longest = Math.max(longest, current);
+        pendingDeficit = null;
+      } else {
+        if (total >= goal) {
+          current = 1;
+          longest = Math.max(longest, current);
+          pendingDeficit = null;
+        } else {
+          current = 0;
+          pendingDeficit = goal - total;
+          pendingBase = 0;
+          cursor = addDays(cursor, 1);
+          continue;
+        }
+      }
+    } else if (total >= goal) {
       current += 1;
-    } else {
       longest = Math.max(longest, current);
-      current = 1;
+    } else {
+      pendingDeficit = goal - total;
+      pendingBase = current;
+      current = 0;
     }
+    cursor = addDays(cursor, 1);
   }
 
-  longest = Math.max(longest, current);
   return longest;
 };
