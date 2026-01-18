@@ -7,7 +7,7 @@ declare let self: ServiceWorkerGlobalScope & {
 
 // @ts-expect-error - clientsClaim is not yet in the types for self
 clientsClaim();
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 setCacheNameDetails({ prefix: 'burpee-tracker', suffix: CACHE_VERSION });
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);

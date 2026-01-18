@@ -73,6 +73,8 @@ export const totalsByDay = (entries: Entry[]): Map<string, number> => {
   return totals;
 };
 
+// Streaks can forgive a single missed day if the following day (chronologically)
+// meets both its own goal and the missed day's deficit.
 export const currentStreak = (totals: Map<string, number>, today: string, goal: number): number => {
   let streak = 0;
   let cursor = parseKeyToDate(today);
@@ -111,35 +113,31 @@ export const longestStreak = (totals: Map<string, number>, goal: number): number
 
   let longest = 0;
   let current = 0;
+  // pendingDeficit/pendingBase track a single day that missed the goal and the streak
+  // length immediately before it. The next day can clear the deficit if it meets the
+  // goal plus the missing amount.
   let pendingDeficit: number | null = null;
   let pendingBase = 0;
 
-  let cursor = parseKeyToDate(keys[0]);
-  const end = parseKeyToDate(keys[keys.length - 1]);
-
-  while (cursor <= end) {
-    const key = formatDateKey(cursor);
-    const total = totals.get(key) ?? 0;
-
+  const processDay = (total: number) => {
     if (pendingDeficit !== null) {
       if (total >= goal + pendingDeficit) {
         current = pendingBase + 2;
         longest = Math.max(longest, current);
         pendingDeficit = null;
+      } else if (total >= goal) {
+        current = 1;
+        longest = Math.max(longest, current);
+        pendingDeficit = null;
       } else {
-        if (total >= goal) {
-          current = 1;
-          longest = Math.max(longest, current);
-          pendingDeficit = null;
-        } else {
-          current = 0;
-          pendingDeficit = goal - total;
-          pendingBase = 0;
-          cursor = addDays(cursor, 1);
-          continue;
-        }
+        current = 0;
+        pendingDeficit = goal - total;
+        pendingBase = 0;
       }
-    } else if (total >= goal) {
+      return;
+    }
+
+    if (total >= goal) {
       current += 1;
       longest = Math.max(longest, current);
     } else {
@@ -147,8 +145,31 @@ export const longestStreak = (totals: Map<string, number>, goal: number): number
       pendingBase = current;
       current = 0;
     }
-    cursor = addDays(cursor, 1);
-  }
+  };
+
+  const dayDiff = (prev: Date, next: Date): number => {
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const start = Date.UTC(prev.getFullYear(), prev.getMonth(), prev.getDate());
+    const end = Date.UTC(next.getFullYear(), next.getMonth(), next.getDate());
+    return Math.round((end - start) / msPerDay);
+  };
+
+  let prevDate: Date | null = null;
+  keys.forEach((key) => {
+    const currentDate = parseKeyToDate(key);
+    if (prevDate) {
+      const gap = dayDiff(prevDate, currentDate);
+      if (gap > 2) {
+        current = 0;
+        pendingDeficit = null;
+        pendingBase = 0;
+      } else if (gap === 2) {
+        processDay(0);
+      }
+    }
+    processDay(totals.get(key) ?? 0);
+    prevDate = currentDate;
+  });
 
   return longest;
 };
