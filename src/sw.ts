@@ -1,5 +1,5 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { clientsClaim } from 'workbox-core';
+import { clientsClaim, setCacheNameDetails } from 'workbox-core';
 
 declare let self: ServiceWorkerGlobalScope & {
     __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -7,6 +7,8 @@ declare let self: ServiceWorkerGlobalScope & {
 
 // @ts-expect-error - clientsClaim is not yet in the types for self
 clientsClaim();
+const CACHE_VERSION = 'v3';
+setCacheNameDetails({ prefix: 'burpee-tracker', suffix: CACHE_VERSION });
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
